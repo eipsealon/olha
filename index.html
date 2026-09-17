@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ольха</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+/* ======================= токены ======================= */
+:root{
+  --ink:#171423; --ink2:#1E1A2B; --ink3:#262034; --ink4:#2F2841;
+  --line:#352D49; --line2:#443A5C;
+  --tx:#EFEAF6; --tx2:#A79DBC; --tx3:#7A7191;
+  --amber:#FFB26B; --amber-d:#E89A52;
+  --mint:#7DD3C0; --rose:#F2798A; --violet:#A98BFF;
+  --r:14px; --r-s:10px;
+  --shadow:0 18px 50px -20px rgba(0,0,0,.8);
+  --font:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font); background:var(--ink); color:var(--tx);
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:var(--amber);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:6px}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--line2);background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+.hide{display:none!important}
+
+/* ======================= экраны входа ======================= */
+.gate{height:100%;display:grid;place-items:center;padding:24px;overflow:auto}
+.gate-card{width:100%;max-width:430px;background:var(--ink2);border:1px solid var(--line);
+  border-radius:20px;padding:30px;box-shadow:var(--shadow)}
+.brand{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+.brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:20px;
+  background:linear-gradient(150deg,var(--amber),#D9705B)}
+.brand h1{font-size:21px;font-weight:650;letter-spacing:-.02em}
+.gate-sub{color:var(--tx2);font-size:14px;margin-bottom:22px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12.5px;color:var(--tx2);margin-bottom:6px}
+.inp{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:var(--r-s);
+  padding:11px 13px;font-size:14.5px;transition:border-color .15s}
+.inp:focus{outline:none;border-color:var(--amber)}
+textarea.inp{resize:vertical;min-height:90px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--r-s);
+  padding:11px 16px;font-size:14.5px;font-weight:550;transition:.15s;white-space:nowrap}
+.btn-pri{background:var(--amber);color:#2A1A08}
+.btn-pri:hover{background:var(--amber-d)}
+.btn-gho{background:var(--ink3);color:var(--tx)}
+.btn-gho:hover{background:var(--ink4)}
+.btn-dan{background:rgba(242,121,138,.14);color:var(--rose)}
+.btn-dan:hover{background:rgba(242,121,138,.24)}
+.btn-full{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.tabs{display:flex;gap:4px;background:var(--ink);padding:4px;border-radius:var(--r-s);margin-bottom:20px}
+.tabs button{flex:1;padding:8px;border-radius:7px;font-size:14px;color:var(--tx2)}
+.tabs button.on{background:var(--ink3);color:var(--tx)}
+.note{font-size:13px;color:var(--tx2);margin-top:14px;line-height:1.6}
+.err{background:rgba(242,121,138,.12);border:1px solid rgba(242,121,138,.3);color:#FFB9C3;
+  padding:9px 12px;border-radius:var(--r-s);font-size:13.5px;margin-bottom:13px}
+.ok{background:rgba(125,211,192,.1);border:1px solid rgba(125,211,192,.3);color:var(--mint);
+  padding:9px 12px;border-radius:var(--r-s);font-size:13.5px;margin-bottom:13px}
+.steps{counter-reset:s;margin:14px 0 18px}
+.steps li{list-style:none;position:relative;padding-left:30px;margin-bottom:11px;font-size:13.5px;color:var(--tx2)}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;width:20px;height:20px;
+  border-radius:7px;background:var(--ink3);color:var(--amber);font-size:11.5px;display:grid;place-items:center;font-weight:600}
+.steps b{color:var(--tx);font-weight:550}
+
+/* ======================= каркас ======================= */
+#app{height:100%;display:grid;grid-template-columns:70px 248px minmax(0,1fr) 216px}
+.rail{background:#12101B;display:flex;flex-direction:column;align-items:center;gap:9px;padding:12px 0;overflow-y:auto}
+.rail::-webkit-scrollbar{width:0}
+.rbtn{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-size:21px;
+  background:var(--ink3);transition:border-radius .18s,background .18s;position:relative;flex:none}
+.rbtn:hover{border-radius:13px;background:var(--ink4)}
+.rbtn.on{border-radius:13px;box-shadow:0 0 0 2px var(--amber)}
+.rbtn.on::before,.rbtn.has::before{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);
+  width:4px;border-radius:0 4px 4px 0;background:var(--tx)}
+.rbtn.on::before{height:26px}
+.rbtn.has::before{height:9px}
+.rbtn.add{background:transparent;border:1px dashed var(--line2);color:var(--tx2);font-size:22px}
+.rbtn.add:hover{border-color:var(--amber);color:var(--amber)}
+.rail-sep{width:26px;height:1px;background:var(--line);flex:none}
+
+.side{background:var(--ink2);display:flex;flex-direction:column;min-width:0;border-right:1px solid rgba(0,0,0,.25)}
+.side-head{padding:15px 16px 13px;border-bottom:1px solid var(--line)}
+.side-head h2{font-size:15.5px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:7px}
+.code{margin-top:7px;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--tx2);
+  background:var(--ink);padding:3px 8px;border-radius:7px;cursor:pointer;font-family:ui-monospace,monospace}
+.code:hover{color:var(--amber)}
+.chans{flex:1;overflow-y:auto;padding:10px 8px}
+.grp{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 5px;color:var(--tx3);font-size:12px}
+.grp button{color:var(--tx3);font-size:17px;line-height:1;padding:0 4px}
+.grp button:hover{color:var(--tx)}
+.ch{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;color:var(--tx2);
+  font-size:14.5px;width:100%;text-align:left;transition:.12s;min-width:0}
+.ch:hover{background:var(--ink3);color:var(--tx)}
+.ch.on{background:var(--ink4);color:var(--tx)}
+.ch .sym{color:var(--tx3);flex:none;width:16px;text-align:center}
+.ch .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ch .badge{background:var(--rose);color:#2A0A10;border-radius:20px;font-size:11px;font-weight:650;padding:1px 6px;flex:none}
+.ch .x{opacity:0;color:var(--tx3);font-size:15px;flex:none}
+.ch:hover .x{opacity:1}
+.ch .x:hover{color:var(--rose)}
+.vlist{padding:2px 0 6px 30px;display:flex;flex-direction:column;gap:5px}
+.vp{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2)}
+.vp .av{width:20px;height:20px;font-size:9.5px}
+.vp.spk .av{box-shadow:0 0 0 2px var(--mint)}
+.vp .mic{font-size:11px;color:var(--rose)}
+
+.me{border-top:1px solid var(--line);padding:9px 10px;display:flex;align-items:center;gap:9px;background:rgba(0,0,0,.18)}
+.me .av{width:32px;height:32px;border-radius:11px;font-size:12px}
+.me .nick{flex:1;min-width:0}
+.me .nick b{display:block;font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me .nick span{font-size:11.5px;color:var(--tx3)}
+.ibtn{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--tx2);flex:none}
+.ibtn:hover{background:var(--ink4);color:var(--tx)}
+.ibtn.act{color:var(--rose)}
+
+.voicebar{margin:8px;padding:10px 11px;background:rgba(125,211,192,.08);border:1px solid rgba(125,211,192,.25);border-radius:12px}
+.voicebar .t{font-size:12.5px;color:var(--mint);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.voicebar .row{display:flex;gap:6px}
+.voicebar .row .ibtn{background:var(--ink3);flex:1}
+
+/* ======================= чат ======================= */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--ink)}
+.top{height:54px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--line)}
+.top h3{font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden}
+.top h3 span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-head h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top h3 .sym{color:var(--tx3)}
+.top .sp{flex:1}
+.burger{display:none}
+
+.grid{padding:12px 16px 4px;display:flex;flex-wrap:wrap;gap:10px;flex:none;max-height:46vh;overflow:auto}
+.tile{position:relative;width:236px;aspect-ratio:16/10;background:#0F0D17;border-radius:12px;overflow:hidden;
+  border:1px solid var(--line)}
+.tile video{width:100%;height:100%;object-fit:cover;display:block}
+.tile .cap{position:absolute;left:7px;bottom:6px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
+  padding:2px 8px;border-radius:7px;font-size:12px}
+.tile.spk{border-color:var(--mint)}
+
+.msgs{flex:1;overflow-y:auto;padding:16px 0 8px}
+.day{display:flex;align-items:center;gap:12px;margin:18px 18px 12px;color:var(--tx3);font-size:12px}
+.day::before,.day::after{content:"";flex:1;height:1px;background:var(--line)}
+.m{display:flex;gap:12px;padding:2px 18px;position:relative}
+.m:hover{background:rgba(255,255,255,.018)}
+.m.first{margin-top:14px}
+.m .gut{width:38px;flex:none;display:grid;place-items:center;padding-top:3px}
+.m .gut .ts{font-size:10.5px;color:var(--tx3);opacity:0;padding-top:4px}
+.m:hover .gut .ts{opacity:1}
+.m .body{min-width:0;flex:1;padding-bottom:1px}
+.m .hd{display:flex;align-items:baseline;gap:9px;margin-bottom:1px}
+.m .hd b{font-size:14.5px;font-weight:600;letter-spacing:-.005em}
+.m .hd .ts{font-size:11.5px;color:var(--tx3)}
+.tx{overflow-wrap:anywhere;white-space:pre-wrap}
+.tx code{background:var(--ink3);padding:1px 5px;border-radius:5px;font-size:13px;font-family:ui-monospace,Menlo,monospace}
+.tx pre{background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:5px 0;
+  overflow-x:auto;font-size:13px;font-family:ui-monospace,Menlo,monospace;white-space:pre}
+.tx blockquote{border-left:3px solid var(--line2);padding-left:10px;color:var(--tx2);margin:3px 0}
+.tx .men{background:rgba(169,139,255,.18);color:var(--violet);border-radius:5px;padding:0 4px}
+.tx.big{font-size:38px;line-height:1.25}
+.av{width:38px;height:38px;border-radius:13px;object-fit:cover;display:grid;place-items:center;
+  font-size:14px;font-weight:650;color:#241705;flex:none}
+.reply{font-size:12.5px;color:var(--tx3);display:flex;align-items:center;gap:6px;margin-bottom:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.reply b{color:var(--tx2);font-weight:550}
+.att{margin-top:6px;display:flex;flex-wrap:wrap;gap:8px}
+.att img.ph,.att video.ph{max-width:min(420px,72%);max-height:340px;border-radius:12px;display:block;cursor:zoom-in;background:var(--ink2)}
+.att .stk{width:150px;height:150px;object-fit:contain}
+.att .stk-l{width:150px;height:150px;overflow:hidden}
+.att .file{display:flex;align-items:center;gap:10px;background:var(--ink2);border:1px solid var(--line);
+  border-radius:11px;padding:10px 13px;font-size:13.5px;max-width:330px}
+.rx{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.rx button{background:var(--ink3);border:1px solid transparent;border-radius:9px;padding:2px 8px;font-size:13px;
+  display:flex;gap:5px;align-items:center}
+.rx button.mine{background:rgba(255,178,107,.16);border-color:var(--amber)}
+.rx button span{font-size:11.5px;color:var(--tx2)}
+.acts{position:absolute;right:18px;top:-11px;display:none;gap:2px;background:var(--ink2);
+  border:1px solid var(--line);border-radius:10px;padding:2px}
+.m:hover .acts{display:flex}
+.acts button{width:29px;height:29px;border-radius:7px;display:grid;place-items:center;color:var(--tx2);font-size:14px}
+.acts button:hover{background:var(--ink4);color:var(--tx)}
+
+.typing{height:20px;padding:0 20px;font-size:12px;color:var(--tx3);flex:none}
+.compose{padding:0 16px 16px;flex:none;position:relative}
+.replybar{display:flex;align-items:center;gap:8px;background:var(--ink3);border-radius:11px 11px 0 0;
+  padding:6px 12px;font-size:12.5px;color:var(--tx2);margin-bottom:-6px}
+.replybar b{color:var(--tx)}
+.replybar .sp{flex:1}
+.box{background:var(--ink2);border:1px solid var(--line);border-radius:var(--r);display:flex;align-items:flex-end;
+  gap:4px;padding:6px 6px 6px 8px;transition:border-color .15s}
+.box:focus-within{border-color:var(--line2)}
+.box textarea{flex:1;background:none;border:0;resize:none;padding:9px 4px;max-height:190px;font-size:15px;line-height:1.5}
+.box textarea:focus{outline:none}
+.box textarea::placeholder{color:var(--tx3)}
+.pend{display:flex;gap:8px;flex-wrap:wrap;padding:8px 8px 2px}
+.pend .it{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;background:var(--ink3);
+  display:grid;place-items:center;font-size:11px;color:var(--tx2);text-align:center;padding:4px}
+.pend .it img,.pend .it video{width:100%;height:100%;object-fit:cover}
+.pend .it button{position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:7px;
+  background:rgba(0,0,0,.65);display:grid;place-items:center;font-size:12px}
+
+.pop{position:absolute;bottom:calc(100% + 8px);right:16px;width:340px;max-height:400px;background:var(--ink2);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);display:flex;flex-direction:column;z-index:40}
+.pop-h{display:flex;gap:6px;padding:8px;border-bottom:1px solid var(--line);align-items:center;overflow-x:auto}
+.pop-b{overflow-y:auto;padding:10px;display:flex;flex-wrap:wrap;gap:6px}
+.pop-b.emo button{width:34px;height:34px;border-radius:8px;font-size:21px;display:grid;place-items:center}
+.pop-b.emo button:hover{background:var(--ink4)}
+.pop-b.stk button{width:76px;height:76px;border-radius:10px;display:grid;place-items:center;padding:4px}
+.pop-b.stk button:hover{background:var(--ink4)}
+.pop-b.stk img,.pop-b.stk video{max-width:100%;max-height:100%;object-fit:contain}
+.chip{padding:5px 10px;border-radius:8px;background:var(--ink3);font-size:12.5px;color:var(--tx2);white-space:nowrap}
+.chip.on{background:var(--amber);color:#2A1A08}
+
+.people{width:216px;background:var(--ink2);border-left:1px solid rgba(0,0,0,.25);overflow-y:auto;padding:14px 10px}
+.people .grp{padding:8px 6px 6px}
+.pr{display:flex;align-items:center;gap:9px;padding:6px;border-radius:9px}
+.pr:hover{background:var(--ink3)}
+.pr .av{width:30px;height:30px;border-radius:11px;font-size:12px}
+.pr.off{opacity:.42}
+.pr .n{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mint);flex:none}
+
+.empty{flex:1;display:grid;place-items:center;text-align:center;padding:30px;color:var(--tx2)}
+.empty .em{font-size:44px;margin-bottom:12px}
+.empty h4{color:var(--tx);font-size:17px;font-weight:600;margin-bottom:6px}
+
+/* ======================= модалки ======================= */
+.mask{position:fixed;inset:0;background:rgba(8,6,14,.72);backdrop-filter:blur(3px);display:grid;place-items:center;
+  z-index:80;padding:20px;overflow:auto}
+.modal{width:100%;max-width:430px;background:var(--ink2);border:1px solid var(--line);border-radius:18px;
+  padding:24px;box-shadow:var(--shadow)}
+.modal h3{font-size:17px;font-weight:620;margin-bottom:4px}
+.modal .sub{color:var(--tx2);font-size:13.5px;margin-bottom:18px}
+.modal .row{display:flex;gap:9px;margin-top:18px}
+.modal .row .btn{flex:1}
+.lb{position:fixed;inset:0;background:rgba(6,4,10,.93);z-index:90;display:grid;place-items:center;padding:24px}
+.lb img,.lb video{max-width:100%;max-height:100%;border-radius:12px}
+.drop{position:absolute;inset:0;background:rgba(255,178,107,.1);border:2px dashed var(--amber);
+  border-radius:var(--r);display:grid;place-items:center;color:var(--amber);font-weight:600;z-index:50;margin:16px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink3);
+  border:1px solid var(--line2);padding:10px 18px;border-radius:12px;z-index:95;font-size:14px;box-shadow:var(--shadow)}
+.spin{width:15px;height:15px;border:2px solid var(--line2);border-top-color:var(--amber);border-radius:50%;
+  animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+@media (max-width:900px){
+  #app{grid-template-columns:1fr}
+  .rail,.side{position:fixed;top:0;bottom:0;z-index:60;transform:translateX(-100%);transition:transform .2s}
+  .rail{left:0;width:70px} .side{left:70px;width:248px}
+  body.nav .rail,body.nav .side{transform:none}
+  body.nav::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55}
+  .burger{display:grid}
+  .people{position:fixed;right:0;top:0;bottom:0;z-index:60;transform:translateX(100%);transition:transform .2s;width:230px}
+  body.ppl .people{transform:none}
+  .att img.ph,.att video.ph{max-width:100%}
+  .tile{width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. подключение базы ============ -->
+<div id="setup" class="gate hide">
+  <div class="gate-card">
+    <div class="brand"><div class="brand-mark">🌿</div><h1>Ольха</h1></div>
+    <p class="gate-sub">Свой чат на бесплатной базе Supabase. Пять минут — и готово.</p>
+    <ol class="steps">
+      <li>Зарегистрируйся на <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a> и создай проект (регион — <b>Frankfurt</b>, он ближе всего).</li>
+      <li>Открой <b>SQL Editor</b>, вставь скрипт из кнопки ниже и нажми Run.</li>
+      <li>В <b>Authentication → Sign In / Providers → Email</b> выключи <b>Confirm email</b>, чтобы друзьям не пришлось подтверждать почту.</li>
+      <li>В <b>Project Settings → API</b> скопируй сюда Project URL и ключ <b>anon public</b>.</li>
+    </ol>
+    <div id="setupErr"></div>
+    <div class="field"><label for="sUrl">Project URL</label>
+      <input id="sUrl" class="inp" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off"></div>
+    <div class="field"><label for="sKey">anon public key</label>
+      <input id="sKey" class="inp" placeholder="eyJhbGciOi..." autocomplete="off"></div>
+    <button class="btn btn-pri btn-full" id="sSave">Подключить</button>
+    <button class="btn btn-gho btn-full" id="sSql" style="margin-top:9px">Показать SQL-скрипт</button>
+    <p class="note">Чтобы друзья не вводили это вручную — открой index.html в блокноте и впиши URL и ключ в CONFIG в самом верху скрипта.</p>
+  </div>
+</div>
+
+<!-- ============ 2. вход ============ -->
+<div id="auth" class="gate hide">
+  <div class="gate-card">
+    <div class="brand"><div class="brand-mark">🌿</div><h1>Ольха</h1></div>
+    <p class="gate-sub">Заходи под своим именем — и пиши друзьям.</p>
+    <div class="tabs"><button id="tLogin" class="on">Вход</button><button id="tReg">Регистрация</button></div>
+    <div id="authErr"></div>
+    <div class="field nickf hide"><label for="aNick">Имя</label>
+      <input id="aNick" class="inp" placeholder="Как тебя звать" maxlength="24"></div>
+    <div class="field"><label for="aMail">Почта</label>
+      <input id="aMail" class="inp" type="email" placeholder="ты@example.com" autocomplete="username"></div>
+    <div class="field"><label for="aPass">Пароль</label>
+      <input id="aPass" class="inp" type="password" placeholder="не короче 6 символов" autocomplete="current-password"></div>
+    <button class="btn btn-pri btn-full" id="aGo" style="margin-top:6px">Войти</button>
+    <p class="note">Почта нужна только чтобы пароль был к чему привязан — письма приходить не будут.</p>
+    <button class="btn btn-gho btn-full" id="aReset" style="margin-top:14px">Подключить другую базу</button>
+  </div>
+</div>
+
+<!-- ============ 3. приложение ============ -->
+<div id="app" class="hide">
+  <nav class="rail" id="rail"></nav>
+
+  <aside class="side">
+    <div class="side-head">
+      <h2 id="roomName">—</h2>
+      <div class="code" id="inviteCode" title="Нажми, чтобы скопировать код приглашения"></div>
+    </div>
+    <div class="chans" id="chans"></div>
+    <div id="voicebar"></div>
+    <div class="me">
+      <div id="meAv"></div>
+      <div class="nick"><b id="meNick">—</b><span id="meState">на связи</span></div>
+      <button class="ibtn" id="btnMic" title="Микрофон">🎙</button>
+      <button class="ibtn" id="btnProf" title="Профиль">⚙️</button>
+      <button class="ibtn" id="btnOut" title="Выйти">⏻</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <button class="ibtn burger" id="burger">☰</button>
+      <h3 id="chTitle"><span class="sym">#</span><span>общий</span></h3>
+      <div class="sp"></div>
+      <button class="ibtn" id="btnPpl" title="Участники">👥</button>
+    </header>
+    <div class="grid hide" id="vgrid"></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="typing" id="typing"></div>
+    <div class="compose" id="compose">
+      <div id="replybar"></div>
+      <div class="box" id="box">
+        <div style="flex:1;min-width:0">
+          <div class="pend hide" id="pend"></div>
+          <textarea id="inp" rows="1" placeholder="Написать сообщение…" maxlength="4000"></textarea>
+        </div>
+        <button class="ibtn" id="btnFile" title="Файл">📎</button>
+        <button class="ibtn" id="btnStk" title="Стикеры">🖼</button>
+        <button class="ibtn" id="btnEmo" title="Эмодзи">🙂</button>
+        <button class="ibtn" id="btnSend" title="Отправить" style="color:var(--amber)">➤</button>
+      </div>
+      <input type="file" id="file" multiple class="hide">
+    </div>
+  </main>
+
+  <aside class="people" id="people"></aside>
+</div>
+
+<div id="modals"></div>
+<audio id="dingA" preload="auto"></audio>
+
+<script id="sqlsrc" type="text/plain">-- Скрипт лежит рядом в файле schema.sql — вставь его целиком в SQL Editor.</script>
+<script>
+/* =====================================================================
+   Ольха — чат для своих.
+   Впиши сюда URL и anon-ключ проекта Supabase, чтобы друзьям
+   не пришлось вводить их вручную:
+   ===================================================================== */
+const CONFIG = { url: "", key: "" };
+
+/* ------------------------- мелкие помощники ------------------------- */
+const $  = s => document.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+const esc = s => (s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const LS = { get:(k,d)=>{try{return JSON.parse(localStorage.getItem("olkha."+k)) ?? d}catch{return d}},
+             set:(k,v)=>localStorage.setItem("olkha."+k, JSON.stringify(v)),
+             del:k=>localStorage.removeItem("olkha."+k) };
+
+const PALETTE = ["#FFB26B","#7DD3C0","#A98BFF","#F2798A","#8FC7F0","#F5D06F","#89E0A0","#FF9F9F"];
+const EMOJI = "😀 😄 😂 🤣 😊 🥹 😍 🤩 😘 😜 🤪 🧐 🤔 🫡 🤗 🙃 😴 😭 😤 😡 🥶 🤯 🫠 💀 👻 🤖 🎃 😎 🥳 🫶 👍 👎 👏 🙏 💪 🤝 ✌️ 🫵 🔥 ✨ ⚡ 💥 🎉 🎁 🌿 🌸 🍄 🌙 ⭐ 🍕 🍺 🍷 ☕ 🍪 🐱 🐶 🦊 🐸 🐼 🦉 🐢 🐙 ❤️ 🧡 💛 💚 💙 💜 🖤 💔 ✅ ❌ ❓ ❗ 💬 📎 📌 🎮 🎧 🎸 ⚽ 🚀 🏔 🌊".split(" ");
+const QUICK = ["👍","😂","🔥","❤️","😮","😢"];
+
+const ICE = LS.get("ice", [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "turn:openrelay.metered.ca:80",               username:"openrelayproject", credential:"openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443",              username:"openrelayproject", credential:"openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp",username:"openrelayproject", credential:"openrelayproject" },
+  { urls: "turn:staticauth.openrelay.metered.ca:80",    username:"openrelayproject", credential:"openrelayproject" }
+]);
+
+const S = {
+  sb:null, user:null, me:null,
+  rooms:[], room:null, channels:[], channel:null,
+  people:{}, online:{}, msgs:[], unread:{},
+  packs:[], pending:[], replyTo:null,
+  rtRoom:null, rtMsg:null, typingUsers:{}, lastTyped:0,
+  voice:{ ch:null, stream:null, videoTrack:null, peers:{}, muted:false, cam:false, screen:false, levels:{} }
+};
+
+function toast(text, ms = 2600) {
+  document.querySelectorAll(".toast").forEach(n => n.remove());
+  const t = el("div", "toast", esc(text));
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), ms);
+}
+function avatar(p, cls = "av") {
+  const n = p?.nickname || "?";
+  if (p?.avatar_url) { const i = el("img", cls); i.src = p.avatar_url; i.alt = n; return i; }
+  const d = el("div", cls, esc(n.trim()[0] || "?").toUpperCase());
+  d.style.background = p?.color || "#FFB26B";
+  return d;
+}
+function fmtTime(d) { return new Date(d).toLocaleTimeString("ru-RU", { hour:"2-digit", minute:"2-digit" }); }
+function fmtDay(d) {
+  const a = new Date(d), n = new Date(), y = new Date(Date.now() - 864e5);
+  const same = (x, z) => x.toDateString() === z.toDateString();
+  if (same(a, n)) return "Сегодня";
+  if (same(a, y)) return "Вчера";
+  return a.toLocaleDateString("ru-RU", { day:"numeric", month:"long" });
+}
+function fmtSize(b) { return b > 1048576 ? (b/1048576).toFixed(1)+" МБ" : Math.max(1, Math.round(b/1024))+" КБ"; }
+
+/* --------- лёгкая разметка: **жирный** *курсив* `код` ```блок``` > цитата --------- */
+function render(text) {
+  let t = esc(text || "");
+  const blocks = [];
+  t = t.replace(/```([\s\S]*?)```/g, (_, c) => `\u0000${blocks.push(`<pre>${c.replace(/^\n/,"")}</pre>`) - 1}\u0000`);
+  t = t.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  t = t.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+  t = t.replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<i>$2</i>");
+  t = t.replace(/(^|\n)&gt;\s?([^\n]*)/g, "$1<blockquote>$2</blockquote>");
+  t = t.replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+  t = t.replace(/@([\wа-яёА-ЯЁ_-]{2,24})/g, '<span class="men">@$1</span>');
+  t = t.replace(/\u0000(\d+)\u0000/g, (_, i) => blocks[+i]);
+  return t;
+}
+const onlyEmoji = s => s && s.replace(/\s/g, "").length <= 12 &&
+  /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200d\ufe0f\s]+$/u.test(s);
+
+/* ===================== запуск ===================== */
+(function boot() {
+  const saved = LS.get("cfg", null);
+  const cfg = (CONFIG.url && CONFIG.key) ? CONFIG : saved;
+  if (!cfg) return showSetup();
+  try {
+    S.sb = window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true } });
+  } catch (e) { LS.del("cfg"); return showSetup("Не получилось подключиться: " + e.message); }
+  S.sb.auth.getSession().then(({ data }) => data.session ? afterLogin(data.session.user) : showAuth());
+})();
+
+function showSetup(err) {
+  $("#setup").classList.remove("hide"); $("#auth").classList.add("hide"); $("#app").classList.add("hide");
+  if (err) $("#setupErr").innerHTML = `<div class="err">${esc(err)}</div>`;
+  $("#sSave").onclick = () => {
+    const url = $("#sUrl").value.trim().replace(/\/+$/, ""), key = $("#sKey").value.trim();
+    if (!/^https:\/\/.+\.supabase\.co$/.test(url)) return $("#setupErr").innerHTML = `<div class="err">URL должен выглядеть как https://xxxx.supabase.co</div>`;
+    if (key.length < 40) return $("#setupErr").innerHTML = `<div class="err">Ключ выглядит слишком коротким. Нужен anon public.</div>`;
+    LS.set("cfg", { url, key }); location.reload();
+  };
+  $("#sSql").onclick = () => modal(`<h3>SQL-скрипт</h3><p class="sub">Файл schema.sql лежит рядом с index.html. Открой его, скопируй всё и запусти в SQL Editor.</p>
+    <div class="row"><button class="btn btn-pri" data-close>Понятно</button></div>`);
+}
+
+function showAuth(err) {
+  $("#setup").classList.add("hide"); $("#auth").classList.remove("hide"); $("#app").classList.add("hide");
+  $("#authErr").innerHTML = err ? `<div class="err">${esc(err)}</div>` : "";
+  let mode = "login";
+  const setMode = m => {
+    mode = m;
+    $("#tLogin").classList.toggle("on", m === "login");
+    $("#tReg").classList.toggle("on", m === "reg");
+    document.querySelector(".nickf").classList.toggle("hide", m === "login");
+    $("#aGo").textContent = m === "login" ? "Войти" : "Создать аккаунт";
+    $("#aPass").autocomplete = m === "login" ? "current-password" : "new-password";
+  };
+  $("#tLogin").onclick = () => setMode("login");
+  $("#tReg").onclick = () => setMode("reg");
+  $("#aReset").onclick = () => { LS.del("cfg"); location.reload(); };
+  const go = async () => {
+    const mail = $("#aMail").value.trim(), pass = $("#aPass").value, nick = $("#aNick").value.trim();
+    $("#authErr").innerHTML = "";
+    if (!mail || pass.length < 6) return $("#authErr").innerHTML = `<div class="err">Нужна почта и пароль от 6 символов.</div>`;
+    if (mode === "reg" && nick.length < 2) return $("#authErr").innerHTML = `<div class="err">Придумай имя, хотя бы две буквы.</div>`;
+    $("#aGo").disabled = true; $("#aGo").innerHTML = '<span class="spin"></span>';
+    try {
+      if (mode === "login") {
+        const { data, error } = await S.sb.auth.signInWithPassword({ email: mail, password: pass });
+        if (error) throw error;
+        await afterLogin(data.user);
+      } else {
+        const { data, error } = await S.sb.auth.signUp({ email: mail, password: pass, options: { data: { nickname: nick } } });
+        if (error) throw error;
+        if (!data.session) throw new Error("Почта требует подтверждения. Выключи Confirm email в настройках Supabase.");
+        await S.sb.from("profiles").upsert({ id: data.user.id, nickname: nick, color: PALETTE[Math.floor(Math.random()*PALETTE.length)] });
+        await afterLogin(data.user);
+      }
+    } catch (e) {
+      const m = /Invalid login/i.test(e.message) ? "Не сходится почта или пароль."
+              : /already registered/i.test(e.message) ? "Такая почта уже занята — попробуй войти."
+              : e.message;
+      $("#authErr").innerHTML = `<div class="err">${esc(m)}</div>`;
+    } finally { $("#aGo").disabled = false; $("#aGo").textContent = mode === "login" ? "Войти" : "Создать аккаунт"; }
+  };
+  $("#aGo").onclick = go;
+  $("#aPass").onkeydown = e => { if (e.key === "Enter") go(); };
+  setMode("login");
+}
+
+async function afterLogin(user) {
+  S.user = user;
+  let { data: prof } = await S.sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if (!prof) {
+    const nick = user.user_metadata?.nickname || (user.email || "друг").split("@")[0];
+    const ins = await S.sb.from("profiles")
+      .insert({ id: user.id, nickname: nick, color: PALETTE[Math.floor(Math.random()*PALETTE.length)] })
+      .select().single();
+    prof = ins.data;
+  }
+  S.me = prof; S.people[prof.id] = prof;
+  $("#setup").classList.add("hide"); $("#auth").classList.add("hide"); $("#app").classList.remove("hide");
+  renderMe(); wireApp();
+  await loadRooms();
+  if (Notification?.permission === "default") Notification.requestPermission().catch(()=>{});
+}
+
+function renderMe() {
+  $("#meAv").replaceChildren(avatar(S.me));
+  $("#meNick").textContent = S.me.nickname;
+}
+
+/* ===================== комнаты ===================== */
+async function loadRooms(openId) {
+  const { data, error } = await S.sb.from("rooms").select("*").order("created_at");
+  if (error) return toast("Не читается список комнат: " + error.message);
+  S.rooms = data || [];
+  renderRail();
+  const want = openId || LS.get("room", null);
+  const target = S.rooms.find(r => r.id === want) || S.rooms[0];
+  if (target) openRoom(target.id); else emptyState();
+}
+
+function renderRail() {
+  const rail = $("#rail"); rail.replaceChildren();
+  S.rooms.forEach(r => {
+    const b = el("button", "rbtn" + (S.room?.id === r.id ? " on" : ""), esc(r.icon || "🌿"));
+    b.title = r.name; b.onclick = () => openRoom(r.id);
+    rail.appendChild(b);
+  });
+  if (S.rooms.length) rail.appendChild(el("div", "rail-sep"));
+  const add = el("button", "rbtn add", "+"); add.title = "Новая комната или вход по коду";
+  add.onclick = roomDialog; rail.appendChild(add);
+}
+
+function emptyState() {
+  S.room = null; S.channel = null;
+  $("#roomName").textContent = "Пока пусто";
+  $("#inviteCode").textContent = ""; $("#chans").replaceChildren();
+  $("#msgs").replaceChildren(el("div", "empty",
+    `<div><div class="em">🌿</div><h4>Здесь пока тихо</h4><p>Создай комнату и позови друзей по коду — он появится слева.</p></div>`));
+  $("#compose").classList.add("hide");
+}
+
+function roomDialog() {
+  modal(`<h3>Комната</h3><p class="sub">Заведи новую или зайди в чужую по коду из шести символов.</p>
+    <div class="tabs"><button id="mkA" class="on">Создать</button><button id="mkB">Войти по коду</button></div>
+    <div id="mkErr"></div>
+    <div id="paneA">
+      <div class="field"><label for="rIcon">Значок</label><input id="rIcon" class="inp" value="🌿" maxlength="4" style="width:80px;text-align:center;font-size:20px"></div>
+      <div class="field"><label for="rName">Название</label><input id="rName" class="inp" placeholder="Подвал" maxlength="32"></div>
+    </div>
+    <div id="paneB" class="hide">
+      <div class="field"><label for="rCode">Код приглашения</label>
+        <input id="rCode" class="inp" placeholder="A1B2C3" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em"></div>
+    </div>
+    <div class="row"><button class="btn btn-gho" data-close>Отмена</button><button class="btn btn-pri" id="mkGo">Готово</button></div>`,
+  m => {
+    let tab = "a";
+    m.querySelector("#mkA").onclick = () => { tab="a"; m.querySelector("#mkA").classList.add("on"); m.querySelector("#mkB").classList.remove("on");
+      m.querySelector("#paneA").classList.remove("hide"); m.querySelector("#paneB").classList.add("hide"); };
+    m.querySelector("#mkB").onclick = () => { tab="b"; m.querySelector("#mkB").classList.add("on"); m.querySelector("#mkA").classList.remove("on");
+      m.querySelector("#paneB").classList.remove("hide"); m.querySelector("#paneA").classList.add("hide"); };
+    m.querySelector("#mkGo").onclick = async () => {
+      const btn = m.querySelector("#mkGo"); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+      try {
+        let id;
+        if (tab === "a") {
+          const name = m.querySelector("#rName").value.trim() || "Комната";
+          const { data, error } = await S.sb.rpc("create_room", { p_name: name, p_icon: m.querySelector("#rIcon").value.trim() || "🌿" });
+          if (error) throw error; id = data;
+        } else {
+          const code = m.querySelector("#rCode").value.trim().toUpperCase();
+          if (code.length !== 6) throw new Error("Код — ровно шесть символов.");
+          const { data, error } = await S.sb.rpc("join_room", { p_code: code });
+          if (error) throw new Error(/ROOM_NOT_FOUND/.test(error.message) ? "Комната с таким кодом не нашлась." : error.message);
+          id = data;
+        }
+        closeModal(); await loadRooms(id);
+      } catch (e) {
+        m.querySelector("#mkErr").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+        btn.disabled = false; btn.textContent = "Готово";
+      }
+    };
+  });
+}
+
+async function openRoom(id) {
+  if (S.voice.ch) leaveVoice();
+  S.room = S.rooms.find(r => r.id === id); if (!S.room) return emptyState();
+  LS.set("room", id);
+  $("#compose").classList.remove("hide");
+  $("#roomName").textContent = S.room.name;
+  $("#inviteCode").textContent = "код " + S.room.invite_code + "  ⧉";
+  $("#inviteCode").onclick = () => { navigator.clipboard?.writeText(S.room.invite_code); toast("Код скопирован — кидай друзьям"); };
+  renderRail();
+  document.body.classList.remove("nav");
+
+  const [{ data: chans }, { data: ppl }, { data: packs }] = await Promise.all([
+    S.sb.from("channels").select("*").eq("room_id", id).order("position"),
+    S.sb.rpc("room_people", { p_room: id }),
+    S.sb.from("sticker_packs").select("*").eq("room_id", id).order("created_at")
+  ]);
+  S.channels = chans || [];
+  S.packs = packs || [];
+  (ppl || []).forEach(p => S.people[p.id] = p);
+  S.roomPeople = ppl || [];
+
+  subscribeRoom(id);
+  renderChans(); renderPeople();
+  const first = S.channels.find(c => c.kind === "text");
+  if (first) openChannel(first.id); else { S.channel = null; $("#msgs").replaceChildren(); }
+}
+
+/* ===================== каналы ===================== */
+function renderChans() {
+  const box = $("#chans"); box.replaceChildren();
+  const mk = (kind, title) => {
+    const g = el("div", "grp", `<span>${title}</span>`);
+    const plus = el("button", null, "+"); plus.title = "Добавить канал";
+    plus.onclick = () => newChannel(kind); g.appendChild(plus); box.appendChild(g);
+    S.channels.filter(c => c.kind === kind).forEach(c => {
+      const b = el("button", "ch" + (S.channel?.id === c.id ? " on" : ""));
+      b.appendChild(el("span", "sym", kind === "text" ? "#" : "🔈"));
+      b.appendChild(el("span", "nm", esc(c.name)));
+      const u = S.unread[c.id];
+      if (u && S.channel?.id !== c.id) b.appendChild(el("span", "badge", u > 99 ? "99+" : u));
+      const x = el("button", "x", "×"); x.title = "Удалить канал";
+      x.onclick = e => { e.stopPropagation(); delChannel(c); };
+      b.appendChild(x);
+      b.onclick = () => kind === "text" ? openChannel(c.id) : toggleVoice(c);
+      box.appendChild(b);
+      if (kind === "voice") {
+        const inHere = Object.values(S.online).filter(p => p.voice === c.id);
+        if (inHere.length) {
+          const list = el("div", "vlist");
+          inHere.forEach(p => {
+            const row = el("div", "vp" + (S.voice.levels[p.uid] ? " spk" : ""));
+            row.appendChild(avatar(S.people[p.uid] || { nickname: p.nick, color: p.color }, "av"));
+            row.appendChild(el("span", null, esc(p.nick)));
+            if (p.muted) row.appendChild(el("span", "mic", "🔇"));
+            if (p.video) row.appendChild(el("span", "mic", "🎥"));
+            list.appendChild(row);
+          });
+          box.appendChild(list);
+        }
+      }
+    });
+  };
+  mk("text", "Каналы");
+  mk("voice", "Голосовые");
+}
+
+async function newChannel(kind) {
+  modal(`<h3>Новый ${kind === "text" ? "текстовый" : "голосовой"} канал</h3>
+    <p class="sub">Название увидят все в комнате.</p>
+    <div class="field"><input id="cn" class="inp" placeholder="${kind === "text" ? "флудилка" : "покурить"}" maxlength="28"></div>
+    <div class="row"><button class="btn btn-gho" data-close>Отмена</button><button class="btn btn-pri" id="cg">Создать</button></div>`,
+  m => {
+    const go = async () => {
+      const name = m.querySelector("#cn").value.trim().toLowerCase().replace(/\s+/g, "-");
+      if (!name) return;
+      const { error } = await S.sb.from("channels").insert({ room_id: S.room.id, name, kind, position: S.channels.length });
+      if (error) return toast(error.message);
+      closeModal();
+      const { data } = await S.sb.from("channels").select("*").eq("room_id", S.room.id).order("position");
+      S.channels = data || []; renderChans();
+    };
+    m.querySelector("#cg").onclick = go;
+    m.querySelector("#cn").onkeydown = e => { if (e.key === "Enter") go(); };
+    m.querySelector("#cn").focus();
+  });
+}
+
+function delChannel(c) {
+  confirmDlg(`Удалить «${c.name}»?`, "Сообщения этого канала исчезнут навсегда.", async () => {
+    const { error } = await S.sb.from("channels").delete().eq("id", c.id);
+    if (error) return toast(error.message);
+    if (S.voice.ch === c.id) leaveVoice();
+    S.channels = S.channels.filter(x => x.id !== c.id);
+    if (S.channel?.id === c.id) { const n = S.channels.find(x => x.kind === "text"); n ? openChannel(n.id) : $("#msgs").replaceChildren(); }
+    renderChans();
+  });
+}
+
+async function openChannel(id) {
+  const c = S.channels.find(x => x.id === id); if (!c) return;
+  S.channel = c; S.unread[id] = 0; S.replyTo = null; renderReplyBar();
+  $("#chTitle").innerHTML = `<span class="sym">#</span><span>${esc(c.name)}</span>`;
+  renderChans();
+  document.body.classList.remove("nav");
+  $("#msgs").replaceChildren(el("div", "empty", '<span class="spin"></span>'));
+  const { data, error } = await S.sb.from("messages").select("*").eq("channel_id", id)
+    .order("created_at", { ascending: false }).limit(80);
+  if (error) return toast(error.message);
+  S.msgs = (data || []).reverse();
+  await ensureProfiles(S.msgs.map(m => m.author_id));
+  renderMsgs(true);
+  $("#inp").focus();
+}
+
+async function ensureProfiles(ids) {
+  const miss = [...new Set(ids.filter(i => i && !S.people[i]))];
+  if (!miss.length) return;
+  const { data } = await S.sb.from("profiles").select("*").in("id", miss);
+  (data || []).forEach(p => S.people[p.id] = p);
+}
+
+/* ===================== сообщения ===================== */
+function renderMsgs(scroll) {
+  const box = $("#msgs");
+  if (!S.msgs.length) {
+    box.replaceChildren(el("div", "empty",
+      `<div><div class="em">✍️</div><h4>Начало канала «${esc(S.channel?.name || "")}»</h4><p>Первое сообщение за тобой.</p></div>`));
+    return;
+  }
+  box.replaceChildren();
+  let prev = null;
+  S.msgs.forEach(m => {
+    if (!prev || fmtDay(prev.created_at) !== fmtDay(m.created_at)) box.appendChild(el("div", "day", fmtDay(m.created_at)));
+    const grouped = prev && prev.author_id === m.author_id && !m.reply_to &&
+      (new Date(m.created_at) - new Date(prev.created_at)) < 5 * 60000 &&
+      fmtDay(prev.created_at) === fmtDay(m.created_at);
+    box.appendChild(msgNode(m, !grouped));
+    prev = m;
+  });
+  if (scroll) requestAnimationFrame(() => box.scrollTop = box.scrollHeight);
+}
+
+function msgNode(m, first) {
+  const p = S.people[m.author_id] || { nickname: "кто-то", color: "#555" };
+  const n = el("div", "m" + (first ? " first" : ""));
+  n.dataset.id = m.id;
+
+  const gut = el("div", "gut");
+  gut.appendChild(first ? avatar(p) : el("span", "ts", fmtTime(m.created_at)));
+  n.appendChild(gut);
+
+  const body = el("div", "body");
+  if (m.reply_to) {
+    const src = S.msgs.find(x => x.id === m.reply_to);
+    const sp = src ? (S.people[src.author_id]?.nickname || "кто-то") : "";
+    const r = el("div", "reply", src
+      ? `↰ <b>${esc(sp)}</b> ${esc((src.content || "вложение").slice(0, 90))}`
+      : "↰ сообщение удалено");
+    if (src) r.onclick = () => {
+      const t = document.querySelector(`.m[data-id="${src.id}"]`);
+      t?.scrollIntoView({ block: "center", behavior: "smooth" });
+      t?.animate([{ background: "rgba(255,178,107,.18)" }, { background: "transparent" }], 1100);
+    };
+    body.appendChild(r);
+  }
+  if (first) {
+    const hd = el("div", "hd");
+    const b = el("b", null, esc(p.nickname)); b.style.color = p.color || "var(--tx)";
+    hd.appendChild(b); hd.appendChild(el("span", "ts", fmtTime(m.created_at)));
+    if (m.edited_at) hd.appendChild(el("span", "ts", "изменено"));
+    body.appendChild(hd);
+  }
+  if (m.content) {
+    const t = el("div", "tx" + (onlyEmoji(m.content) && !(m.attachments||[]).length ? " big" : ""));
+    t.innerHTML = render(m.content);
+    body.appendChild(t);
+  }
+  const atts = m.attachments || [];
+  if (atts.length) {
+    const wrap = el("div", "att");
+    atts.forEach(a => wrap.appendChild(attNode(a)));
+    body.appendChild(wrap);
+  }
+  const rx = m.reactions || {};
+  if (Object.keys(rx).length) {
+    const row = el("div", "rx");
+    for (const [emo, users] of Object.entries(rx)) {
+      const b = el("button", users.includes(S.user.id) ? "mine" : "", `${emo} <span>${users.length}</span>`);
+      b.onclick = () => S.sb.rpc("toggle_reaction", { p_message: m.id, p_emoji: emo });
+      row.appendChild(b);
+    }
+    body.appendChild(row);
+  }
+  n.appendChild(body);
+
+  const acts = el("div", "acts");
+  QUICK.slice(0, 3).forEach(e => {
+    const b = el("button", null, e);
+    b.onclick = () => S.sb.rpc("toggle_reaction", { p_message: m.id, p_emoji: e });
+    acts.appendChild(b);
+  });
+  const more = el("button", null, "😀"); more.title = "Реакция";
+  more.onclick = ev => { ev.stopPropagation(); emojiPop(ev.currentTarget, e => S.sb.rpc("toggle_reaction", { p_message: m.id, p_emoji: e })); };
+  acts.appendChild(more);
+  const rep = el("button", null, "↰"); rep.title = "Ответить";
+  rep.onclick = () => { S.replyTo = m; renderReplyBar(); $("#inp").focus(); };
+  acts.appendChild(rep);
+  if (m.author_id === S.user.id || S.room?.owner_id === S.user.id) {
+    const d = el("button", null, "🗑"); d.title = "Удалить";
+    d.onclick = () => confirmDlg("Удалить сообщение?", "Оно пропадёт у всех.", async () => {
+      const { error } = await S.sb.from("messages").delete().eq("id", m.id);
+      if (error) return toast(error.message);
+      S.msgs = S.msgs.filter(x => x.id !== m.id);
+      document.querySelector(`.m[data-id="${m.id}"]`)?.remove();
+    });
+    acts.appendChild(d);
+  }
+  n.appendChild(acts);
+  return n;
+}
+
+function attNode(a) {
+  if (a.type === "sticker") {
+    if (a.mime === "tgs") { const d = el("div", "stk-l"); playTgs(d, a.url); return d; }
+    if (/webm|mp4/.test(a.mime || "")) {
+      const v = el("video", "stk"); v.src = a.url; v.autoplay = v.loop = v.muted = v.playsInline = true; return v;
+    }
+    const i = el("img", "stk"); i.src = a.url; i.alt = "стикер"; i.loading = "lazy"; return i;
+  }
+  if (a.type === "image") {
+    const i = el("img", "ph"); i.src = a.url; i.alt = a.name || "картинка"; i.loading = "lazy";
+    i.onclick = () => lightbox(a); return i;
+  }
+  if (a.type === "video") {
+    const v = el("video", "ph"); v.src = a.url; v.controls = true; v.preload = "metadata"; return v;
+  }
+  if (a.type === "audio") { const au = el("audio"); au.src = a.url; au.controls = true; return au; }
+  const f = el("a", "file", `<span style="font-size:19px">📄</span><span><b>${esc(a.name||"файл")}</b><br><span style="color:var(--tx2);font-size:12px">${esc(a.size ? fmtSize(a.size) : "скачать")}</span></span>`);
+  f.href = a.url; f.target = "_blank"; f.rel = "noopener"; f.download = a.name || "";
+  return f;
+}
+
+function lightbox(a) {
+  const m = el("div", "lb");
+  m.appendChild(a.type === "video" ? Object.assign(el("video"), { src:a.url, controls:true, autoplay:true })
+                                   : Object.assign(el("img"), { src:a.url, alt:a.name || "" }));
+  m.onclick = () => m.remove();
+  document.body.appendChild(m);
+}
+
+/* ---- отправка ---- */
+async function send() {
+  const inp = $("#inp");
+  const text = inp.value.trim();
+  if (!text && !S.pending.length) return;
+  if (!S.channel) return toast("Сначала выбери канал");
+  const atts = [];
+  if (S.pending.length) {
+    const items = S.pending.slice(); S.pending = []; renderPending();
+    toast("Загружаю файлы…", 10000);
+    for (const it of items) {
+      try { atts.push(await upload(it.file)); }
+      catch (e) { toast("Файл не загрузился: " + e.message); }
+    }
+    document.querySelectorAll(".toast").forEach(n => n.remove());
+  }
+  inp.value = ""; autoGrow();
+  const payload = {
+    channel_id: S.channel.id, room_id: S.room.id, author_id: S.user.id,
+    content: text || null, attachments: atts, reply_to: S.replyTo?.id || null
+  };
+  S.replyTo = null; renderReplyBar();
+  const { error } = await S.sb.from("messages").insert(payload);
+  if (error) toast("Не отправилось: " + error.message);
+}
+
+async function upload(file) {
+  const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-60);
+  const path = `${S.user.id}/${Date.now()}-${Math.random().toString(36).slice(2,7)}-${safe}`;
+  const { error } = await S.sb.storage.from("media").upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+  if (error) throw error;
+  const { data } = S.sb.storage.from("media").getPublicUrl(path);
+  const t = file.type || "";
+  return {
+    type: t.startsWith("image/") ? "image" : t.startsWith("video/") ? "video" : t.startsWith("audio/") ? "audio" : "file",
+    url: data.publicUrl, name: file.name, size: file.size, mime: t
+  };
+}
+
+function addPending(files) {
+  for (const f of files) {
+    if (f.size > 45 * 1024 * 1024) { toast(`${f.name} тяжелее 45 МБ — не влезет`); continue; }
+    S.pending.push({ file: f, url: URL.createObjectURL(f) });
+  }
+  renderPending();
+}
+function renderPending() {
+  const box = $("#pend"); box.replaceChildren();
+  box.classList.toggle("hide", !S.pending.length);
+  S.pending.forEach((p, i) => {
+    const it = el("div", "it");
+    if (p.file.type.startsWith("image/")) { const im = el("img"); im.src = p.url; it.appendChild(im); }
+    else if (p.file.type.startsWith("video/")) { const v = el("video"); v.src = p.url; it.appendChild(v); }
+    else it.appendChild(el("span", null, esc(p.file.name.slice(0, 22))));
+    const x = el("button", null, "×");
+    x.onclick = () => { URL.revokeObjectURL(p.url); S.pending.splice(i, 1); renderPending(); };
+    it.appendChild(x); box.appendChild(it);
+  });
+}
+function renderReplyBar() {
+  const bar = $("#replybar"); bar.replaceChildren();
+  if (!S.replyTo) return;
+  const who = S.people[S.replyTo.author_id]?.nickname || "кто-то";
+  const b = el("div", "replybar", `Ответ <b>${esc(who)}</b><span class="sp"></span>`);
+  const x = el("button", null, "×"); x.onclick = () => { S.replyTo = null; renderReplyBar(); };
+  b.appendChild(x); bar.appendChild(b);
+}
+function autoGrow() { const t = $("#inp"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 190) + "px"; }
+
+/* ===================== realtime ===================== */
+function subscribeRoom(roomId) {
+  if (S.rtMsg) S.sb.removeChannel(S.rtMsg);
+  if (S.rtRoom) S.sb.removeChannel(S.rtRoom);
+  S.online = {}; S.typingUsers = {};
+
+  S.rtMsg = S.sb.channel("db:" + roomId)
+    .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` }, async ({ eventType, new: nw, old }) => {
+      if (eventType === "INSERT") {
+        if (nw.channel_id === S.channel?.id) {
+          await ensureProfiles([nw.author_id]);
+          const box = $("#msgs");
+          const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+          S.msgs.push(nw); renderMsgs(stick);
+          if (nw.author_id !== S.user.id) notify(nw);
+        } else {
+          S.unread[nw.channel_id] = (S.unread[nw.channel_id] || 0) + 1;
+          renderChans();
+          if (nw.author_id !== S.user.id) notify(nw);
+        }
+      } else if (eventType === "UPDATE") {
+        const i = S.msgs.findIndex(m => m.id === nw.id);
+        if (i > -1) { S.msgs[i] = nw; const node = document.querySelector(`.m[data-id="${nw.id}"]`);
+          if (node) node.replaceWith(msgNode(nw, node.classList.contains("first"))); }
+      } else if (eventType === "DELETE") {
+        S.msgs = S.msgs.filter(m => m.id !== old.id);
+        document.querySelector(`.m[data-id="${old.id}"]`)?.remove();
+      }
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "room_members", filter: `room_id=eq.${roomId}` }, async () => {
+      const { data } = await S.sb.rpc("room_people", { p_room: roomId });
+      S.roomPeople = data || []; (data || []).forEach(p => S.people[p.id] = p); renderPeople();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "channels", filter: `room_id=eq.${roomId}` }, async () => {
+      const { data } = await S.sb.from("channels").select("*").eq("room_id", roomId).order("position");
+      S.channels = data || []; renderChans();
+    })
+    .subscribe();
+
+  S.rtRoom = S.sb.channel("room:" + roomId, { config: { presence: { key: S.user.id } } })
+    .on("presence", { event: "sync" }, () => {
+      const st = S.rtRoom.presenceState(); S.online = {};
+      Object.values(st).forEach(arr => { const p = arr[0]; if (p?.uid) S.online[p.uid] = p; });
+      renderChans(); renderPeople(); syncPeers();
+    })
+    .on("broadcast", { event: "sig" }, ({ payload }) => onSignal(payload))
+    .on("broadcast", { event: "typing" }, ({ payload }) => {
+      if (payload.uid === S.user.id || payload.ch !== S.channel?.id) return;
+      S.typingUsers[payload.uid] = Date.now(); renderTyping();
+    })
+    .subscribe(async status => { if (status === "SUBSCRIBED") await pushPresence(); });
+}
+
+function pushPresence() {
+  if (!S.rtRoom) return;
+  return S.rtRoom.track({
+    uid: S.user.id, nick: S.me.nickname, color: S.me.color, avatar: S.me.avatar_url,
+    voice: S.voice.ch, muted: S.voice.muted, video: !!S.voice.videoTrack
+  });
+}
+function renderTyping() {
+  const now = Date.now();
+  const who = Object.entries(S.typingUsers).filter(([, t]) => now - t < 4000)
+    .map(([u]) => S.people[u]?.nickname).filter(Boolean);
+  $("#typing").textContent = who.length ? (who.slice(0,3).join(", ") + (who.length > 1 ? " печатают…" : " печатает…")) : "";
+  if (who.length) setTimeout(renderTyping, 1200);
+}
+function notify(m) {
+  const who = S.people[m.author_id]?.nickname || "Сообщение";
+  $("#dingA").play?.().catch(()=>{});
+  if (document.hidden && Notification?.permission === "granted") {
+    try { new Notification(who, { body: (m.content || "прислал вложение").slice(0, 120), silent: true }); } catch {}
+  }
+}
+
+function renderPeople() {
+  const box = $("#people"); box.replaceChildren();
+  const list = (S.roomPeople || []).slice();
+  const on = list.filter(p => S.online[p.id]), off = list.filter(p => !S.online[p.id]);
+  const grp = (title, arr, dim) => {
+    if (!arr.length) return;
+    box.appendChild(el("div", "grp", `<span>${title} — ${arr.length}</span>`));
+    arr.forEach(p => {
+      const r = el("div", "pr" + (dim ? " off" : ""));
+      r.appendChild(avatar(p, "av"));
+      const n = el("div", "n", esc(p.nickname)); n.style.flex = "1";
+      r.appendChild(n);
+      if (!dim) r.appendChild(el("div", "dot"));
+      box.appendChild(r);
+    });
+  };
+  grp("В сети", on, false); grp("Не в сети", off, true);
+}
+
+/* ===================== голос и видео ===================== */
+function toggleVoice(c) { S.voice.ch === c.id ? leaveVoice() : joinVoice(c); }
+
+async function joinVoice(c) {
+  if (S.voice.ch) await leaveVoice();
+  try {
+    S.voice.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+  } catch { return toast("Микрофон не дали. Проверь разрешения браузера."); }
+  S.voice.ch = c.id; S.voice.muted = false;
+  meter(S.user.id, S.voice.stream);
+  await pushPresence();
+  renderVoiceBar(); renderChans(); syncPeers();
+  toast("Ты в «" + c.name + "»");
+}
+
+async function leaveVoice() {
+  Object.keys(S.voice.peers).forEach(dropPeer);
+  S.voice.stream?.getTracks().forEach(t => t.stop());
+  S.voice.videoTrack?.stop();
+  Object.assign(S.voice, { ch:null, stream:null, videoTrack:null, peers:{}, cam:false, screen:false, muted:false, levels:{} });
+  document.querySelectorAll(".rpa").forEach(n => n.remove());
+  await pushPresence();
+  renderVoiceBar(); renderChans(); renderGrid();
+}
+
+function renderVoiceBar() {
+  const box = $("#voicebar"); box.replaceChildren();
+  if (!S.voice.ch) return;
+  const c = S.channels.find(x => x.id === S.voice.ch);
+  const n = el("div", "voicebar");
+  const peers = Object.keys(S.voice.peers).length;
+  n.appendChild(el("div", "t", `<span class="dot"></span> В голосе · ${esc(c?.name || "")} · ${peers + 1}`));
+  const row = el("div", "row");
+  const mk = (label, title, on, fn) => { const b = el("button", "ibtn" + (on ? " act" : ""), label); b.title = title; b.onclick = fn; row.appendChild(b); };
+  mk(S.voice.muted ? "🔇" : "🎙", "Микрофон", S.voice.muted, toggleMute);
+  mk("🎥", "Камера", S.voice.cam, toggleCam);
+  mk("🖥", "Экран", S.voice.screen, toggleScreen);
+  const leave = el("button", "ibtn", "📞"); leave.title = "Выйти"; leave.style.color = "var(--rose)"; leave.onclick = leaveVoice;
+  row.appendChild(leave);
+  n.appendChild(row); box.appendChild(n);
+}
+
+function toggleMute() {
+  S.voice.muted = !S.voice.muted;
+  S.voice.stream?.getAudioTracks().forEach(t => t.enabled = !S.voice.muted);
+  pushPresence(); renderVoiceBar(); renderChans();
+}
+async function toggleCam() {
+  if (S.voice.cam || S.voice.screen) return stopVideo();
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+    setVideo(s.getVideoTracks()[0]); S.voice.cam = true;
+  } catch { toast("Камеру не дали."); }
+}
+async function toggleScreen() {
+  if (S.voice.screen) return stopVideo();
+  if (S.voice.cam) stopVideo();
+  try {
+    const s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    const tr = s.getVideoTracks()[0];
+    tr.onended = () => stopVideo();
+    setVideo(tr); S.voice.screen = true;
+  } catch {}
+}
+function setVideo(track) {
+  S.voice.videoTrack?.stop();
+  S.voice.videoTrack = track;
+  Object.values(S.voice.peers).forEach(p => p.vsender?.replaceTrack(track).catch(()=>{}));
+  pushPresence(); renderVoiceBar(); renderGrid();
+}
+function stopVideo() {
+  S.voice.videoTrack?.stop(); S.voice.videoTrack = null; S.voice.cam = S.voice.screen = false;
+  Object.values(S.voice.peers).forEach(p => p.vsender?.replaceTrack(null).catch(()=>{}));
+  pushPresence(); renderVoiceBar(); renderGrid();
+}
+
+function sig(to, kind, data) { S.rtRoom?.send({ type:"broadcast", event:"sig", payload:{ to, from:S.user.id, kind, data } }); }
+
+function syncPeers() {
+  if (!S.voice.ch) { Object.keys(S.voice.peers).forEach(dropPeer); return; }
+  const mates = Object.values(S.online).filter(p => p.voice === S.voice.ch && p.uid !== S.user.id).map(p => p.uid);
+  Object.keys(S.voice.peers).forEach(uid => { if (!mates.includes(uid)) dropPeer(uid); });
+  // чтобы не столкнуться офферами: инициирует тот, чей id больше
+  mates.forEach(uid => { if (!S.voice.peers[uid] && S.user.id > uid) makePeer(uid, true); });
+  renderVoiceBar(); renderGrid();
+}
+
+function makePeer(uid, initiator) {
+  const pc = new RTCPeerConnection({ iceServers: ICE });
+  const p = { pc, audio:null, video:null, vsender:null };
+  S.voice.peers[uid] = p;
+  S.voice.stream?.getAudioTracks().forEach(t => pc.addTrack(t, S.voice.stream));
+  const vt = pc.addTransceiver("video", { direction: "sendrecv" });
+  p.vsender = vt.sender;
+  if (S.voice.videoTrack) p.vsender.replaceTrack(S.voice.videoTrack).catch(()=>{});
+  pc.onicecandidate = e => { if (e.candidate) sig(uid, "ice", e.candidate.toJSON()); };
+  pc.onconnectionstatechange = () => { if (["failed","closed"].includes(pc.connectionState)) dropPeer(uid); };
+  pc.ontrack = e => {
+    const tr = e.track;
+    if (tr.kind === "audio") {
+      p.audio = new MediaStream([tr]);
+      let a = document.querySelector(`audio.rpa[data-u="${uid}"]`);
+      if (!a) { a = el("audio", "rpa"); a.dataset.u = uid; a.autoplay = true; document.body.appendChild(a); }
+      a.srcObject = p.audio; a.play?.().catch(()=>{});
+      meter(uid, p.audio);
+    } else {
+      p.video = tr;
+      tr.onunmute = renderGrid; tr.onmute = renderGrid; tr.onended = renderGrid;
+      renderGrid();
+    }
+  };
+  if (initiator) negotiate(uid);
+  return p;
+}
+
+async function negotiate(uid) {
+  const p = S.voice.peers[uid]; if (!p) return;
+  const offer = await p.pc.createOffer();
+  await p.pc.setLocalDescription(offer);
+  sig(uid, "offer", p.pc.localDescription);
+}
+
+async function onSignal(msg) {
+  if (msg.to !== S.user.id || !S.voice.ch) return;
+  const uid = msg.from;
+  let p = S.voice.peers[uid];
+  try {
+    if (msg.kind === "offer") {
+      if (!p) p = makePeer(uid, false);
+      await p.pc.setRemoteDescription(msg.data);
+      const ans = await p.pc.createAnswer();
+      await p.pc.setLocalDescription(ans);
+      sig(uid, "answer", p.pc.localDescription);
+    } else if (msg.kind === "answer") {
+      if (p && p.pc.signalingState !== "stable") await p.pc.setRemoteDescription(msg.data);
+    } else if (msg.kind === "ice") {
+      if (p?.pc.remoteDescription) await p.pc.addIceCandidate(msg.data).catch(()=>{});
+      else if (p) (p.q ||= []).push(msg.data);
+    }
+    if (p?.q && p.pc.remoteDescription) { p.q.forEach(c => p.pc.addIceCandidate(c).catch(()=>{})); p.q = null; }
+  } catch (e) { console.warn("signal", e); }
+  renderVoiceBar();
+}
+
+function dropPeer(uid) {
+  const p = S.voice.peers[uid]; if (!p) return;
+  try { p.pc.close(); } catch {}
+  delete S.voice.peers[uid];
+  delete S.voice.levels[uid];
+  document.querySelector(`audio.rpa[data-u="${uid}"]`)?.remove();
+  renderGrid(); renderVoiceBar();
+}
+
+function renderGrid() {
+  const g = $("#vgrid");
+  const tiles = [];
+  if (S.voice.videoTrack) tiles.push({ uid: S.user.id, track: S.voice.videoTrack, me: true });
+  Object.entries(S.voice.peers).forEach(([uid, p]) => {
+    if (p.video && p.video.readyState === "live" && !p.video.muted) tiles.push({ uid, track: p.video });
+  });
+  g.classList.toggle("hide", !tiles.length);
+  if (!tiles.length) return g.replaceChildren();
+  g.replaceChildren();
+  tiles.forEach(t => {
+    const tile = el("div", "tile" + (S.voice.levels[t.uid] ? " spk" : ""));
+    const v = el("video"); v.autoplay = true; v.playsInline = true; v.muted = true;
+    v.srcObject = new MediaStream([t.track]);
+    tile.appendChild(v);
+    const nick = t.me ? "Ты" : (S.people[t.uid]?.nickname || S.online[t.uid]?.nick || "участник");
+    tile.appendChild(el("div", "cap", esc(nick)));
+    g.appendChild(tile);
+  });
+}
+
+/* индикатор «говорит» */
+let AC = null, meters = [];
+function meter(uid, stream) {
+  try {
+    AC ||= new (window.AudioContext || window.webkitAudioContext)();
+    const src = AC.createMediaStreamSource(stream);
+    const an = AC.createAnalyser(); an.fftSize = 512; src.connect(an);
+    meters.push({ uid, an, buf: new Uint8Array(an.frequencyBinCount) });
+    if (meters.length === 1) tick();
+  } catch {}
+}
+function tick() {
+  let changed = false;
+  meters = meters.filter(m => S.voice.ch && (m.uid === S.user.id || S.voice.peers[m.uid]));
+  meters.forEach(m => {
+    m.an.getByteFrequencyData(m.buf);
+    let s = 0; for (let i = 0; i < m.buf.length; i++) s += m.buf[i];
+    const loud = (s / m.buf.length) > 12 && !(m.uid === S.user.id && S.voice.muted);
+    if (!!S.voice.levels[m.uid] !== loud) { S.voice.levels[m.uid] = loud; changed = true; }
+  });
+  if (changed) { renderChans(); renderGrid(); }
+  if (meters.length) requestAnimationFrame(tick);
+}
+
+/* ===================== стикеры ===================== */
+let lottieReady = null;
+function loadLottie() {
+  return lottieReady ||= new Promise((res, rej) => {
+    const add = (src, ok) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = rej; document.head.appendChild(s); };
+    add("https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js", () =>
+      add("https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie_svg.min.js", res));
+  });
+}
+async function playTgs(node, url) {
+  try {
+    await loadLottie();
+    const buf = await (await fetch(url)).arrayBuffer();
+    const json = JSON.parse(window.pako.inflate(new Uint8Array(buf), { to: "string" }));
+    window.lottie.loadAnimation({ container: node, renderer: "svg", loop: true, autoplay: true, animationData: json });
+  } catch { node.textContent = "🖼"; node.style.fontSize = "48px"; }
+}
+
+function stickerPop() {
+  closePop();
+  const pop = el("div", "pop");
+  const head = el("div", "pop-h"), body = el("div", "pop-b stk");
+  pop.appendChild(head); pop.appendChild(body);
+  const draw = i => {
+    [...head.children].forEach((c, k) => c.classList.toggle("on", k === i));
+    body.replaceChildren();
+    const pack = S.packs[i];
+    if (!pack) return body.appendChild(el("div", null, `<p style="color:var(--tx2);font-size:13.5px;padding:8px">Стикеров пока нет. Добавь пак — и он появится у всех в комнате.</p>`));
+    (pack.stickers || []).forEach(s => {
+      const b = el("button");
+      if (s.mime === "tgs") { const d = el("div"); d.style.cssText = "width:100%;height:100%"; playTgs(d, s.url); b.appendChild(d); }
+      else if (/webm|mp4/.test(s.mime || "")) { const v = el("video"); v.src = s.url; v.autoplay = v.loop = v.muted = v.playsInline = true; b.appendChild(v); }
+      else { const im = el("img"); im.src = s.url; im.loading = "lazy"; b.appendChild(im); }
+      b.onclick = () => {
+        S.sb.from("messages").insert({ channel_id:S.channel.id, room_id:S.room.id, author_id:S.user.id,
+          content:null, attachments:[{ type:"sticker", url:s.url, mime:s.mime, name:s.emoji || "стикер" }] });
+        closePop();
+      };
+      body.appendChild(b);
+    });
+  };
+  S.packs.forEach((p, i) => { const c = el("button", "chip", esc(p.title)); c.onclick = () => draw(i); head.appendChild(c); });
+  const add = el("button", "chip", "+ пак"); add.onclick = () => { closePop(); packDialog(); }; head.appendChild(add);
+  $("#compose").appendChild(pop);
+  draw(0);
+}
+
+function packDialog() {
+  modal(`<h3>Добавить стикеры</h3><p class="sub">Пак увидят все в комнате.</p>
+    <div class="tabs"><button id="pA" class="on">Из Telegram</button><button id="pB">Свои файлы</button></div>
+    <div id="pErr"></div>
+    <div id="pnA">
+      <div class="field"><label for="tgName">Ссылка или имя набора</label>
+        <input id="tgName" class="inp" placeholder="t.me/addstickers/HotCherry"></div>
+      <div class="field"><label for="tgTok">Токен бота</label>
+        <input id="tgTok" class="inp" placeholder="123456:AA..."></div>
+      <p class="note">Токен бесплатно выдаёт <b>@BotFather</b> в Telegram: /newbot. Он нужен только чтобы скачать картинки, никуда не сохраняется. Берутся первые 40 стикеров.</p>
+    </div>
+    <div id="pnB" class="hide">
+      <div class="field"><label for="pTitle">Название пака</label><input id="pTitle" class="inp" placeholder="Наши" maxlength="24"></div>
+      <div class="field"><label for="pFiles">Картинки</label><input id="pFiles" class="inp" type="file" accept="image/*,video/webm" multiple></div>
+      <p class="note">Подойдут png, webp, gif или webm. Хорошо смотрятся квадратные, до 512 px.</p>
+    </div>
+    <div class="row"><button class="btn btn-gho" data-close>Отмена</button><button class="btn btn-pri" id="pGo">Добавить</button></div>`,
+  m => {
+    let tab = "a";
+    const err = t => m.querySelector("#pErr").innerHTML = `<div class="err">${esc(t)}</div>`;
+    m.querySelector("#pA").onclick = () => { tab="a"; m.querySelector("#pA").classList.add("on"); m.querySelector("#pB").classList.remove("on");
+      m.querySelector("#pnA").classList.remove("hide"); m.querySelector("#pnB").classList.add("hide"); };
+    m.querySelector("#pB").onclick = () => { tab="b"; m.querySelector("#pB").classList.add("on"); m.querySelector("#pA").classList.remove("on");
+      m.querySelector("#pnB").classList.remove("hide"); m.querySelector("#pnA").classList.add("hide"); };
+    m.querySelector("#pGo").onclick = async () => {
+      const btn = m.querySelector("#pGo"); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+      try {
+        let title, stickers = [];
+        if (tab === "a") {
+          const raw = m.querySelector("#tgName").value.trim();
+          const name = raw.split("/").pop().split("?")[0];
+          const tok = m.querySelector("#tgTok").value.trim();
+          if (!name || !tok) throw new Error("Нужны и набор, и токен бота.");
+          const r = await fetch(`https://api.telegram.org/bot${tok}/getStickerSet?name=${encodeURIComponent(name)}`).then(x => x.json());
+          if (!r.ok) throw new Error(r.description || "Telegram не отдал набор");
+          title = r.result.title || name;
+          const list = r.result.stickers.slice(0, 40);
+          for (const st of list) {
+            btn.innerHTML = `<span class="spin"></span> ${stickers.length + 1}/${list.length}`;
+            const f = await fetch(`https://api.telegram.org/bot${tok}/getFile?file_id=${st.file_id}`).then(x => x.json());
+            if (!f.ok) continue;
+            const blob = await fetch(`https://api.telegram.org/file/bot${tok}/${f.result.file_path}`).then(x => x.blob());
+            const ext = f.result.file_path.split(".").pop();
+            const mime = ext === "tgs" ? "tgs" : ext === "webm" ? "video/webm" : "image/" + ext;
+            const file = new File([blob], `${name}-${stickers.length}.${ext}`, { type: mime === "tgs" ? "application/gzip" : mime });
+            const up = await upload(file);
+            stickers.push({ url: up.url, mime, emoji: st.emoji || "" });
+          }
+          if (!stickers.length) throw new Error("Ни одного стикера не скачалось.");
+        } else {
+          title = m.querySelector("#pTitle").value.trim() || "Свои";
+          const files = [...m.querySelector("#pFiles").files];
+          if (!files.length) throw new Error("Выбери хотя бы одну картинку.");
+          for (const f of files) {
+            btn.innerHTML = `<span class="spin"></span> ${stickers.length + 1}/${files.length}`;
+            const up = await upload(f);
+            stickers.push({ url: up.url, mime: f.type, emoji: "" });
+          }
+        }
+        const { data, error } = await S.sb.from("sticker_packs")
+          .insert({ room_id: S.room.id, title, stickers, created_by: S.user.id }).select().single();
+        if (error) throw error;
+        S.packs.push(data); closeModal(); toast(`Пак «${title}» добавлен`);
+      } catch (e) {
+        const msg = /Failed to fetch/i.test(e.message)
+          ? "Не достучаться до Telegram из браузера. Включи VPN или залей стикеры вкладкой «Свои файлы»."
+          : e.message;
+        err(msg); btn.disabled = false; btn.textContent = "Добавить";
+      }
+    };
+  });
+}
+
+/* ===================== всплывашки ===================== */
+function closePop() { document.querySelectorAll(".pop").forEach(n => n.remove()); }
+function emojiPop(anchor, pick) {
+  closePop();
+  const pop = el("div", "pop"); pop.style.maxHeight = "270px";
+  const body = el("div", "pop-b emo");
+  EMOJI.forEach(e => { const b = el("button", null, e); b.onclick = () => { pick(e); closePop(); }; body.appendChild(b); });
+  pop.appendChild(body); $("#compose").appendChild(pop);
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest(".pop") && !e.target.closest("#btnEmo") && !e.target.closest("#btnStk") && !e.target.closest(".acts")) closePop();
+});
+
+function modal(html, after) {
+  closeModal();
+  const mask = el("div", "mask"), m = el("div", "modal", html);
+  mask.appendChild(m); $("#modals").appendChild(mask);
+  mask.onclick = e => { if (e.target === mask) closeModal(); };
+  m.querySelectorAll("[data-close]").forEach(b => b.onclick = closeModal);
+  document.addEventListener("keydown", escClose);
+  after?.(m);
+  return m;
+}
+function escClose(e) { if (e.key === "Escape") closeModal(); }
+function closeModal() { $("#modals").replaceChildren(); document.removeEventListener("keydown", escClose); }
+function confirmDlg(title, sub, fn) {
+  modal(`<h3>${esc(title)}</h3><p class="sub">${esc(sub)}</p>
+    <div class="row"><button class="btn btn-gho" data-close>Оставить</button><button class="btn btn-dan" id="yes">Удалить</button></div>`,
+  m => m.querySelector("#yes").onclick = () => { closeModal(); fn(); });
+}
+
+function profileDialog() {
+  modal(`<h3>Профиль</h3><p class="sub">Как тебя видят в комнате.</p>
+    <div class="field"><label for="pNick">Имя</label><input id="pNick" class="inp" value="${esc(S.me.nickname)}" maxlength="24"></div>
+    <div class="field"><label>Цвет</label><div id="pColors" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>
+    <div class="field"><label for="pAv">Аватар</label><input id="pAv" class="inp" type="file" accept="image/*"></div>
+    <div class="row"><button class="btn btn-gho" data-close>Отмена</button><button class="btn btn-pri" id="pSave">Сохранить</button></div>`,
+  m => {
+    let color = S.me.color;
+    const cs = m.querySelector("#pColors");
+    PALETTE.forEach(c => {
+      const b = el("button"); b.style.cssText = `width:30px;height:30px;border-radius:10px;background:${c};box-shadow:${c===color?"0 0 0 2px var(--tx)":"none"}`;
+      b.onclick = () => { color = c; [...cs.children].forEach(x => x.style.boxShadow = "none"); b.style.boxShadow = "0 0 0 2px var(--tx)"; };
+      cs.appendChild(b);
+    });
+    m.querySelector("#pSave").onclick = async () => {
+      const btn = m.querySelector("#pSave"); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+      const patch = { nickname: m.querySelector("#pNick").value.trim() || S.me.nickname, color };
+      const f = m.querySelector("#pAv").files[0];
+      if (f) { try { patch.avatar_url = (await upload(f)).url; } catch { toast("Аватар не загрузился"); } }
+      const { data, error } = await S.sb.from("profiles").update(patch).eq("id", S.user.id).select().single();
+      if (error) { toast(error.message); btn.disabled = false; btn.textContent = "Сохранить"; return; }
+      S.me = data; S.people[data.id] = data;
+      renderMe(); pushPresence(); renderMsgs(false); renderPeople();
+      closeModal(); toast("Сохранено");
+    };
+  });
+}
+
+/* ===================== события интерфейса ===================== */
+let wired = false;
+function wireApp() {
+  if (wired) return; wired = true;
+  const inp = $("#inp");
+  inp.addEventListener("input", () => {
+    autoGrow();
+    const now = Date.now();
+    if (now - S.lastTyped > 2200 && S.channel) {
+      S.lastTyped = now;
+      S.rtRoom?.send({ type:"broadcast", event:"typing", payload:{ uid:S.user.id, ch:S.channel.id } });
+    }
+  });
+  inp.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    if (e.key === "Escape" && S.replyTo) { S.replyTo = null; renderReplyBar(); }
+  });
+  inp.addEventListener("paste", e => {
+    const files = [...(e.clipboardData?.files || [])];
+    if (files.length) { e.preventDefault(); addPending(files); }
+  });
+  $("#btnSend").onclick = send;
+  $("#btnFile").onclick = () => $("#file").click();
+  $("#file").onchange = e => { addPending(e.target.files); e.target.value = ""; };
+  $("#btnEmo").onclick = e => { e.stopPropagation();
+    if (document.querySelector(".pop")) return closePop();
+    emojiPop(null, em => { inp.value += em; inp.focus(); autoGrow(); }); };
+  $("#btnStk").onclick = e => { e.stopPropagation();
+    document.querySelector(".pop") ? closePop() : stickerPop(); };
+  $("#btnProf").onclick = profileDialog;
+  $("#btnMic").onclick = () => S.voice.ch ? toggleMute() : toast("Сначала зайди в голосовой канал");
+  $("#btnOut").onclick = () => confirmDlg("Выйти из аккаунта?", "Комнаты и переписка останутся на месте.", async () => {
+    await leaveVoice(); await S.sb.auth.signOut(); location.reload();
+  });
+  $("#burger").onclick = () => document.body.classList.toggle("nav");
+  $("#btnPpl").onclick = () => document.body.classList.toggle("ppl");
+
+  const comp = $("#compose");
+  let dragDepth = 0;
+  comp.addEventListener("dragenter", e => { e.preventDefault(); if (++dragDepth === 1) comp.appendChild(el("div","drop","Отпусти — отправим")); });
+  comp.addEventListener("dragover", e => e.preventDefault());
+  comp.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; comp.querySelector(".drop")?.remove(); } });
+  comp.addEventListener("drop", e => {
+    e.preventDefault(); dragDepth = 0; comp.querySelector(".drop")?.remove();
+    if (e.dataTransfer.files.length) addPending(e.dataTransfer.files);
+  });
+  window.addEventListener("beforeunload", () => { if (S.voice.ch) leaveVoice(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.channel) { S.unread[S.channel.id] = 0; renderChans(); } });
+  // короткий «дзынь» без внешнего файла
+  $("#dingA").src = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+}
+</script>
+</body>
+</html>
