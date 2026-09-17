@@ -514,19 +514,37 @@ function showAuth(err) {
 
 async function afterLogin(user) {
   S.user = user;
-  let { data: prof } = await S.sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  const sel = await S.sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if (sel.error) return showAuth(diagnose(sel.error));
+  let prof = sel.data;
   if (!prof) {
     const nick = user.user_metadata?.nickname || (user.email || "друг").split("@")[0];
     const ins = await S.sb.from("profiles")
       .insert({ id: user.id, nickname: nick, color: PALETTE[Math.floor(Math.random()*PALETTE.length)] })
       .select().single();
+    if (ins.error) return showAuth(diagnose(ins.error));
     prof = ins.data;
   }
+  if (!prof) return showAuth("База не вернула профиль и не сообщила причину. Проверь, что schema.sql выполнен целиком.");
   S.me = prof; S.people[prof.id] = prof;
   $("#setup").classList.add("hide"); $("#auth").classList.add("hide"); $("#app").classList.remove("hide");
   renderMe(); wireApp();
   await loadRooms();
-  if (Notification?.permission === "default") Notification.requestPermission().catch(()=>{});
+  if (window.Notification && Notification.permission === "default") Notification.requestPermission().catch(()=>{});
+}
+
+/* понятное объяснение вместо сырой ошибки postgrest */
+function diagnose(e) {
+  const m = (e && (e.message || e.hint || e.details)) || String(e);
+  if (/does not exist|schema cache|Could not find the table|PGRST205/i.test(m))
+    return "Таблицы profiles нет в базе — значит schema.sql не выполнился. Открой SQL Editor, вставь скрипт целиком и нажми Run.";
+  if (/row-level security|violates row-level|PGRST301|permission denied/i.test(m))
+    return "База не даёт записать профиль: не создались политики доступа. Прогони schema.sql ещё раз целиком — он безопасен для повтора.";
+  if (/Invalid API key|JWSError|apikey|401/i.test(m))
+    return "Ключ проекта не тот. Нужен именно anon public (не publishable и не service_role).";
+  if (/Failed to fetch|NetworkError/i.test(m))
+    return "Не достучаться до базы. Проверь Project URL — он должен быть вида https://xxxx.supabase.co.";
+  return "Ошибка базы: " + m;
 }
 
 function renderMe() {
