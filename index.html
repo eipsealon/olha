@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Ольха</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js'"></script>
 <style>
 /* ======================= токены ======================= */
 :root{
@@ -66,7 +66,7 @@ textarea.inp{resize:vertical;min-height:90px;font-family:ui-monospace,Menlo,Cons
 .tabs button.on{background:var(--ink3);color:var(--tx)}
 .note{font-size:13px;color:var(--tx2);margin-top:14px;line-height:1.6}
 .err{background:rgba(242,121,138,.12);border:1px solid rgba(242,121,138,.3);color:#FFB9C3;
-  padding:9px 12px;border-radius:var(--r-s);font-size:13.5px;margin-bottom:13px}
+  padding:9px 12px;border-radius:var(--r-s);font-size:13.5px;margin-bottom:13px;white-space:pre-wrap;user-select:text}
 .ok{background:rgba(125,211,192,.1);border:1px solid rgba(125,211,192,.3);color:var(--mint);
   padding:9px 12px;border-radius:var(--r-s);font-size:13.5px;margin-bottom:13px}
 .steps{counter-reset:s;margin:14px 0 18px}
@@ -444,7 +444,25 @@ const onlyEmoji = s => s && s.replace(/\s/g, "").length <= 12 &&
   /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200d\ufe0f\s]+$/u.test(s);
 
 /* ===================== запуск ===================== */
+window.addEventListener("error", e => {
+  if (document.body.dataset.crashed) return;
+  document.body.dataset.crashed = "1";
+  const box = document.createElement("div");
+  box.style.cssText = "position:fixed;inset:0;background:#171423;color:#EFEAF6;display:grid;place-items:center;padding:24px;z-index:999;font-family:sans-serif";
+  box.innerHTML = `<div style="max-width:440px"><h2 style="margin-bottom:10px">Что-то сломалось</h2>
+    <p style="color:#A79DBC;margin-bottom:14px">Скопируй текст ниже и пришли — так будет видно, в чём дело.</p>
+    <pre style="background:#1E1A2B;padding:12px;border-radius:10px;white-space:pre-wrap;font-size:12.5px;user-select:all">${(e.message||"") + "\\n" + (e.filename?e.filename+":"+e.lineno:"")}</pre></div>`;
+  document.body.appendChild(box);
+});
+
 (function boot() {
+  if (!window.supabase || !window.supabase.createClient) {
+    document.body.innerHTML = `<div class="gate"><div class="gate-card">
+      <div class="brand"><div class="brand-mark">🌿</div><h1>Ольха</h1></div>
+      <div class="err">Не загрузилась библиотека Supabase из сети — проверь интернет или включи VPN и обнови страницу (Ctrl+Shift+R).</div>
+    </div></div>`;
+    return;
+  }
   const saved = LS.get("cfg", null);
   const cfg = (CONFIG.url && CONFIG.key) ? CONFIG : saved;
   if (!cfg) return showSetup();
@@ -533,18 +551,19 @@ async function afterLogin(user) {
   if (window.Notification && Notification.permission === "default") Notification.requestPermission().catch(()=>{});
 }
 
-/* понятное объяснение вместо сырой ошибки postgrest */
+/* понятное объяснение вместо сырой ошибки postgrest — и сама ошибка тоже, чтобы её можно было прислать */
 function diagnose(e) {
   const m = (e && (e.message || e.hint || e.details)) || String(e);
+  let guess = "Ошибка базы.";
   if (/does not exist|schema cache|Could not find the table|PGRST205/i.test(m))
-    return "Таблицы profiles нет в базе — значит schema.sql не выполнился. Открой SQL Editor, вставь скрипт целиком и нажми Run.";
-  if (/row-level security|violates row-level|PGRST301|permission denied/i.test(m))
-    return "База не даёт записать профиль: не создались политики доступа. Прогони schema.sql ещё раз целиком — он безопасен для повтора.";
-  if (/Invalid API key|JWSError|apikey|401/i.test(m))
-    return "Ключ проекта не тот. Нужен именно anon public (не publishable и не service_role).";
-  if (/Failed to fetch|NetworkError/i.test(m))
-    return "Не достучаться до базы. Проверь Project URL — он должен быть вида https://xxxx.supabase.co.";
-  return "Ошибка базы: " + m;
+    guess = "Таблицы profiles нет в базе — значит schema.sql не выполнился целиком.";
+  else if (/row-level security|violates row-level|PGRST301|permission denied/i.test(m))
+    guess = "База не даёт записать профиль: не сработала политика доступа.";
+  else if (/Invalid API key|JWSError|apikey|401/i.test(m))
+    guess = "Ключ проекта не тот. Нужен именно anon public.";
+  else if (/Failed to fetch|NetworkError/i.test(m))
+    guess = "Не достучаться до базы. Проверь Project URL.";
+  return `${guess}\nТочный текст (пришли его): ${m}`;
 }
 
 function renderMe() {
